@@ -433,7 +433,7 @@ tr.changed td{background:#fff9e6}
 
 
 /* ===== FIREBASE LOGIN OVERLAY ===== */
-#fb-login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#1e3a5f 0%,#2d7dd2 100%);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+#fb-login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#1e3a5f 0%,#2d7dd2 100%);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;visibility:visible}
 #fb-login-box{background:white;border-radius:16px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
 #fb-login-box h2{color:#1e3a5f;margin-bottom:4px;font-size:22px;font-weight:700}
 #fb-login-subtitle{color:#6c757d;font-size:13px;margin-bottom:24px}
@@ -444,7 +444,7 @@ tr.changed td{background:#fff9e6}
 #fb-login-btn:disabled{background:#adb5bd;cursor:not-allowed}
 #fb-login-error{color:#dc3545;font-size:12px;margin-top:8px;display:none;padding:8px 12px;background:#fdf0f0;border-radius:6px}
 /* ===== OPS USER PANEL ===== */
-#ops-panel{display:none;position:fixed;inset:0;background:#eef2f7;z-index:9998;overflow-y:auto}
+#ops-panel{display:none;position:fixed;inset:0;background:#eef2f7;z-index:9998;overflow-y:auto;visibility:visible}
 .ops-header{background:#1e3a5f;color:white;padding:14px 24px;display:flex;justify-content:space-between;align-items:center}
 .ops-header h1{font-size:16px;font-weight:600}
 .ops-header .ops-subtitle{font-size:11px;opacity:.75}
@@ -3039,8 +3039,6 @@ function _loadFirebaseOBEntries() {
   });
 }
 
-// Hide body until auth check completes (prevents flash)
-document.body.style.visibility = 'hidden';
 // Init Firebase on load
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initFirebase);
@@ -3051,7 +3049,7 @@ if (document.readyState === 'loading') {
 </script>
 
 <!-- ===== FIREBASE LOGIN OVERLAY ===== -->
-<div id="fb-login-overlay">
+<div id="fb-login-overlay" style="position:fixed;inset:0;background:linear-gradient(135deg,#1e3a5f,#2d7dd2);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;visibility:visible">
   <div id="fb-login-box">
     <div style="text-align:center;margin-bottom:20px">
       <div style="font-size:40px;margin-bottom:8px">🔐</div>
@@ -3066,7 +3064,7 @@ if (document.readyState === 'loading') {
 </div>
 
 <!-- ===== OPS USER PANEL ===== -->
-<div id="ops-panel">
+<div id="ops-panel" style="display:none;position:fixed;inset:0;background:#eef2f7;z-index:9998;overflow-y:auto;visibility:visible">
   <div class="ops-header">
     <div>
       <h1>JP Issue Tracker — OB Submission Portal</h1>
