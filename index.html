@@ -431,6 +431,45 @@ tr.changed td{background:#fff9e6}
 .ob-rank-count{font-size:11px;font-weight:700;color:var(--primary);min-width:22px;text-align:right}
 @media(max-width:700px){#ob-insight-grid{grid-template-columns:1fr!important}}
 
+
+/* ===== FIREBASE LOGIN OVERLAY ===== */
+#fb-login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#1e3a5f 0%,#2d7dd2 100%);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+#fb-login-box{background:white;border-radius:16px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+#fb-login-box h2{color:#1e3a5f;margin-bottom:4px;font-size:22px;font-weight:700}
+#fb-login-subtitle{color:#6c757d;font-size:13px;margin-bottom:24px}
+#fb-login-box input{width:100%;padding:11px 14px;border:1px solid #dee2e6;border-radius:8px;font-size:14px;margin-bottom:12px;outline:none;display:block;font-family:inherit}
+#fb-login-box input:focus{border-color:#2d7dd2;box-shadow:0 0 0 3px rgba(45,125,210,.12)}
+#fb-login-btn{width:100%;padding:12px;background:#2d7dd2;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s}
+#fb-login-btn:hover{background:#1a6cbd}
+#fb-login-btn:disabled{background:#adb5bd;cursor:not-allowed}
+#fb-login-error{color:#dc3545;font-size:12px;margin-top:8px;display:none;padding:8px 12px;background:#fdf0f0;border-radius:6px}
+/* ===== OPS USER PANEL ===== */
+#ops-panel{display:none;position:fixed;inset:0;background:#eef2f7;z-index:9998;overflow-y:auto}
+.ops-header{background:#1e3a5f;color:white;padding:14px 24px;display:flex;justify-content:space-between;align-items:center}
+.ops-header h1{font-size:16px;font-weight:600}
+.ops-header .ops-subtitle{font-size:11px;opacity:.75}
+.ops-body{padding:20px 24px;max-width:720px;margin:0 auto}
+.ops-card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:20px}
+.ops-card h3{color:#1e3a5f;font-size:15px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #eee}
+.ops-field{margin-bottom:14px}
+.ops-field label{display:block;font-size:11px;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.ops-field input,.ops-field select,.ops-field textarea{width:100%;padding:9px 12px;border:1px solid #dee2e6;border-radius:6px;font-size:13px;outline:none;font-family:inherit}
+.ops-field input:focus,.ops-field select:focus,.ops-field textarea:focus{border-color:#2d7dd2}
+.ops-field textarea{resize:vertical;min-height:72px}
+.ops-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.paste-zone{background:#f8f9fa;border:2px dashed #dee2e6;border-radius:8px;padding:14px;margin-bottom:18px}
+.paste-zone-label{font-size:11px;font-weight:600;color:#6c757d;margin-bottom:6px}
+.paste-zone textarea{border:none;background:transparent;width:100%;min-height:100px;font-size:12px;font-family:monospace;outline:none;resize:vertical}
+.parse-btn{background:#2d7dd2;color:white;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;margin-top:6px;font-family:inherit}
+.parse-btn:hover{background:#1a6cbd}
+.ops-submit-btn{width:100%;padding:13px;background:#28a745;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;margin-top:8px}
+.ops-submit-btn:hover{background:#218838}
+#ops-submit-msg{display:none;margin-top:12px;padding:10px 14px;border-radius:6px;text-align:center;font-weight:600;font-size:13px}
+.ops-history-item{padding:10px 14px;border:1px solid #dee2e6;border-radius:8px;margin-bottom:8px}
+.ops-history-item .ticket{font-weight:600;color:#1e3a5f;font-size:13px}
+.ops-history-item .meta{font-size:11px;color:#6c757d;margin-top:2px}
+.ops-signout-btn{background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit}
+.ops-signout-btn:hover{background:rgba(255,255,255,.3)}
 </style>
 <script>
 /* ===== OB CALENDAR ===== */
@@ -972,6 +1011,10 @@ function obXlClear() {
 /* ===== OB ISSUE PARSER ===== */
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Firebase SDK (compat mode for easy CDN use) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="header">
@@ -2811,6 +2854,296 @@ async function obExportHTML() {
 
 // function obCopyHTML — removed (replaced by OB CALENDAR)
 
+
+// ============================================================
+// FIREBASE INTEGRATION — Login, Role-based View, OB Sync
+// ============================================================
+const FB_CONFIG = {
+  apiKey: "AIzaSyDMc83nv7FoSVWDlbEZ7PBnGBrM8WVTvKw",
+  authDomain: "jptracer01.firebaseapp.com",
+  databaseURL: "https://jptracer01-default-rtdb.firebaseio.com",
+  projectId: "jptracer01",
+  storageBucket: "jptracer01.firebasestorage.app",
+  messagingSenderId: "925592837888",
+  appId: "1:925592837888:web:e92e8337b2b09f73aedde5"
+};
+
+const ADMIN_EMAILS = ['tjee597@gmail.com'];
+let _fbApp = null, _fbAuth = null, _fbDb = null, _currentUser = null;
+
+function initFirebase() {
+  try {
+    if (typeof firebase === 'undefined') { console.warn('[FB] SDK not loaded'); return; }
+    _fbApp  = firebase.initializeApp(FB_CONFIG);
+    _fbAuth = firebase.auth();
+    _fbDb   = firebase.database();
+
+    _fbAuth.onAuthStateChanged(function(user) {
+      _currentUser = user;
+      if (user) {
+        document.getElementById('fb-login-overlay').style.display = 'none';
+        if (ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+          // ── Admin: show full dashboard ──
+          document.getElementById('ops-panel').style.display = 'none';
+          document.body.style.visibility = 'visible';
+          _addSignOutHeader(user);
+          _loadFirebaseOBEntries();
+        } else {
+          // ── Ops user: show ops panel only ──
+          document.getElementById('ops-panel').style.display = 'block';
+          document.getElementById('ops-user-label').textContent = 'Logged in as: ' + user.email;
+          document.body.style.visibility = 'visible';
+          _loadOpsHistory(user);
+        }
+      } else {
+        document.getElementById('fb-login-overlay').style.display = 'flex';
+        document.getElementById('ops-panel').style.display = 'none';
+      }
+    });
+  } catch(e) { console.error('[FB] Init error:', e); }
+}
+
+function fbLogin() {
+  var email = document.getElementById('fb-email').value.trim();
+  var pass  = document.getElementById('fb-password').value;
+  var errEl = document.getElementById('fb-login-error');
+  var btn   = document.getElementById('fb-login-btn');
+  errEl.style.display = 'none';
+  btn.textContent = 'Signing in...';
+  btn.disabled = true;
+  _fbAuth.signInWithEmailAndPassword(email, pass)
+    .then(function() { btn.textContent = 'Sign In'; btn.disabled = false; })
+    .catch(function(err) {
+      errEl.textContent = 'Invalid email or password. Please try again.';
+      errEl.style.display = 'block';
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
+    });
+}
+
+function fbSignOut() {
+  _fbAuth.signOut();
+}
+
+function _addSignOutHeader(user) {
+  var hr = document.querySelector('.header-right');
+  if (hr && !document.getElementById('fb-header-user')) {
+    var d = document.createElement('div');
+    d.id = 'fb-header-user';
+    d.style.cssText = 'display:flex;align-items:center;gap:8px';
+    d.innerHTML = '<span style="font-size:11px;opacity:.8">' + user.email + '</span>'
+      + '<button onclick="fbSignOut()" style="background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11px">Sign Out</button>';
+    hr.appendChild(d);
+  }
+}
+
+function parseTelegram() {
+  var raw = document.getElementById('tg-paste').value;
+  var lines = raw.split('\n');
+  var map = {};
+  lines.forEach(function(line) {
+    var idx = line.indexOf(':');
+    if (idx > 0) {
+      map[line.substring(0, idx).trim().toLowerCase()] = line.substring(idx + 1).trim();
+    }
+  });
+  if (map['ticket'])      document.getElementById('ops-ticket').value = map['ticket'];
+  if (map['pg'])          document.getElementById('ops-pg').value = map['pg'];
+  if (map['type'])        document.getElementById('ops-type').value = /dp/i.test(map['type']) ? 'DP' : 'WD';
+  if (map['description']) document.getElementById('ops-desc').value = map['description'];
+  if (map['remarks'])     document.getElementById('ops-remarks').value = map['remarks'];
+  if (map['status'])      document.getElementById('ops-status').value = map['status'];
+  if (map['resolution'])  document.getElementById('ops-resolution').value = map['resolution'];
+}
+
+function opsSubmitEntry() {
+  var ticket = document.getElementById('ops-ticket').value.trim();
+  var pg     = document.getElementById('ops-pg').value.trim();
+  var desc   = document.getElementById('ops-desc').value.trim();
+  if (!ticket || !pg || !desc) { alert('Please fill in Ticket ID, PG Name, and Description.'); return; }
+
+  var dateMatch = ticket.match(/(\d{4})(\d{2})(\d{2})/);
+  var entryDate = dateMatch ? (dateMatch[1]+'-'+dateMatch[2]+'-'+dateMatch[3]) : new Date().toISOString().substring(0,10);
+
+  var entry = {
+    t: ticket, p: pg,
+    i: document.getElementById('ops-type').value,
+    d: desc,
+    s: document.getElementById('ops-status').value,
+    o: _currentUser.email.split('@')[0],
+    r: document.getElementById('ops-resolution').value.trim(),
+    k: document.getElementById('ops-remarks').value.trim(),
+    submittedBy: _currentUser.email,
+    submittedAt: new Date().toISOString(),
+    date: entryDate
+  };
+
+  var msgEl = document.getElementById('ops-submit-msg');
+  var key = ticket.replace(/[.#$[\]]/g, '_');
+
+  _fbDb.ref('ob_entries/' + key).set(entry)
+    .then(function() {
+      msgEl.style.display = 'block';
+      msgEl.style.cssText = 'display:block;margin-top:12px;padding:10px 14px;border-radius:6px;text-align:center;font-weight:600;font-size:13px;background:#d4edda;color:#155724';
+      msgEl.textContent = '\u2705 Entry submitted successfully!';
+      ['ops-ticket','ops-pg','ops-desc','ops-remarks','ops-resolution','tg-paste'].forEach(function(id){
+        var el=document.getElementById(id); if(el) el.value='';
+      });
+      document.getElementById('ops-status').value = 'Open';
+      _loadOpsHistory(_currentUser);
+      setTimeout(function(){ msgEl.style.display='none'; }, 4000);
+    })
+    .catch(function(err) {
+      msgEl.style.cssText = 'display:block;margin-top:12px;padding:10px 14px;border-radius:6px;text-align:center;font-weight:600;font-size:13px;background:#f8d7da;color:#721c24';
+      msgEl.textContent = '\u274C Error: ' + err.message;
+    });
+}
+
+function _loadOpsHistory(user) {
+  var listEl = document.getElementById('ops-history-list');
+  if (!listEl || !_fbDb) return;
+  _fbDb.ref('ob_entries').orderByChild('submittedBy').equalTo(user.email).limitToLast(10)
+    .once('value', function(snap) {
+      var entries = [];
+      snap.forEach(function(c){ entries.unshift(c.val()); });
+      if (entries.length === 0) { listEl.textContent = 'No submissions yet.'; return; }
+      listEl.innerHTML = entries.map(function(e){
+        return '<div class="ops-history-item">'
+          + '<div class="ticket">' + e.t + '</div>'
+          + '<div class="meta">' + e.p + ' &nbsp;·&nbsp; ' + e.i + ' &nbsp;·&nbsp; <span style="color:' + (e.s==='Open'?'#856404':'#155724') + '">' + e.s + '</span></div>'
+          + '<div style="font-size:11px;color:#adb5bd;margin-top:2px">' + new Date(e.submittedAt).toLocaleString() + '</div>'
+          + '</div>';
+      }).join('');
+    });
+}
+
+function _loadFirebaseOBEntries() {
+  if (!_fbDb) return;
+  _fbDb.ref('ob_entries').on('value', function(snap) {
+    var count = 0;
+    snap.forEach(function(child) {
+      var e = child.val();
+      var date = e.date || new Date().toISOString().substring(0,10);
+      if (!OB_DATA[date]) OB_DATA[date] = [];
+      var exists = OB_DATA[date].find(function(x){ return x.t === e.t; });
+      if (!exists) { OB_DATA[date].push(e); count++; }
+    });
+    if (count > 0) {
+      var total = Object.values(OB_DATA).reduce(function(a,v){ return a+v.length; }, 0);
+      var badge = document.getElementById('ob-badge');
+      if (badge) badge.textContent = total;
+      var obEl = document.getElementById('daily-ob');
+      if (obEl && obEl.classList.contains('active')) { obRenderRows(); }
+      console.log('[Firebase] Synced ' + count + ' new OB entries');
+    }
+  });
+}
+
+// Hide body until auth check completes (prevents flash)
+document.body.style.visibility = 'hidden';
+// Init Firebase on load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initFirebase);
+} else {
+  initFirebase();
+}
+
 </script>
+
+<!-- ===== FIREBASE LOGIN OVERLAY ===== -->
+<div id="fb-login-overlay">
+  <div id="fb-login-box">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:40px;margin-bottom:8px">🔐</div>
+      <h2>JP Issue Tracker</h2>
+      <p id="fb-login-subtitle">Sign in with your ops account</p>
+    </div>
+    <input type="email" id="fb-email" placeholder="Email address" onkeydown="if(event.key==='Enter')fbLogin()" />
+    <input type="password" id="fb-password" placeholder="Password" onkeydown="if(event.key==='Enter')fbLogin()" />
+    <button id="fb-login-btn" onclick="fbLogin()">Sign In</button>
+    <div id="fb-login-error"></div>
+  </div>
+</div>
+
+<!-- ===== OPS USER PANEL ===== -->
+<div id="ops-panel">
+  <div class="ops-header">
+    <div>
+      <h1>JP Issue Tracker — OB Submission Portal</h1>
+      <div class="ops-subtitle" id="ops-user-label">Loading...</div>
+    </div>
+    <button class="ops-signout-btn" onclick="fbSignOut()">Sign Out</button>
+  </div>
+  <div class="ops-body">
+
+    <div class="ops-card">
+      <h3>📋 Submit New OB Entry</h3>
+
+      <div class="paste-zone">
+        <div class="paste-zone-label">⚡ TELEGRAM PASTE — paste message then click Parse</div>
+        <textarea id="tg-paste" placeholder="Paste Telegram message here...
+
+Example:
+Ticket: JP-INR-20260328-0001
+PG: kingpayWD
+Type: WD
+Description: Call back issue, failed in PG but still Processing on our backend
+Remarks: MID:17746227539536113005 PID:ikBXvL51HHpty8bZ"></textarea>
+        <button class="parse-btn" onclick="parseTelegram()">⚡ Parse & Fill Form</button>
+      </div>
+
+      <div class="ops-field">
+        <label>Ticket ID *</label>
+        <input type="text" id="ops-ticket" placeholder="e.g. JP-INR-20260328-0001" />
+      </div>
+      <div class="ops-grid-2">
+        <div class="ops-field">
+          <label>PG Name *</label>
+          <input type="text" id="ops-pg" placeholder="e.g. paypay, kingpayWD" />
+        </div>
+        <div class="ops-field">
+          <label>Type</label>
+          <select id="ops-type">
+            <option value="WD">WD — Withdrawal</option>
+            <option value="DP">DP — Deposit</option>
+          </select>
+        </div>
+      </div>
+      <div class="ops-field">
+        <label>Description *</label>
+        <textarea id="ops-desc" placeholder="Describe the issue..."></textarea>
+      </div>
+      <div class="ops-field">
+        <label>Remarks / Key Info (MID, PID, etc.)</label>
+        <textarea id="ops-remarks" placeholder="MID: xxx  PID: xxx"></textarea>
+      </div>
+      <div class="ops-grid-2">
+        <div class="ops-field">
+          <label>Status</label>
+          <select id="ops-status">
+            <option value="Open">Open</option>
+            <option value="Processing">Processing</option>
+            <option value="Waiting">Waiting</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+        <div class="ops-field">
+          <label>OPS Resolution</label>
+          <input type="text" id="ops-resolution" placeholder="e.g. Manually marking as Waiting" />
+        </div>
+      </div>
+
+      <button class="ops-submit-btn" onclick="opsSubmitEntry()">✅ Submit OB Entry to System</button>
+      <div id="ops-submit-msg"></div>
+    </div>
+
+    <div class="ops-card">
+      <h3>📑 My Recent Submissions</h3>
+      <div id="ops-history-list" style="font-size:13px;color:#6c757d">Loading...</div>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>
