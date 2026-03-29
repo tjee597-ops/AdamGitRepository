@@ -2938,22 +2938,106 @@ function _addSignOutHeader(user) {
 }
 
 function parseTelegram() {
-  var raw = document.getElementById('tg-paste').value;
+  var raw = document.getElementById('tg-paste').value.trim();
+  if (!raw) { alert('Please paste a Telegram message first.'); return; }
+
+  // ── Alias maps (all lowercase) ───────────────────────────────────────────
+  var TICKET_KEYS     = ['ticket id','ticket','ticketid','case id','caseid','case','ref id','ref'];
+  var PG_KEYS         = ['pg name','pgname','pg','agent','merchant','gateway','provider','payment gateway','pg/agent'];
+  var TYPE_KEYS       = ['issue type','issuetype','type','transaction type'];
+  var DESC_KEYS       = ['description','desc','issue','details','detail','problem','subject','message','comment'];
+  var EXPLICIT_REMARK = ['remarks','remark','key info','keyinfo','note','notes','reference'];
+  var STATUS_KEYS     = ['status'];
+  var RESOLUTION_KEYS = ['ops resolution','opsresolution','resolution','ops res','opsres'];
+
+  // ── Parse lines into key→value map; collect non-KV lines separately ──────
   var lines = raw.split('\n');
   var map = {};
+  var nonKvLines = [];
+
   lines.forEach(function(line) {
-    var idx = line.indexOf(':');
+    var t = line.trim();
+    if (!t) return;
+    var idx = t.indexOf(':');
     if (idx > 0) {
-      map[line.substring(0, idx).trim().toLowerCase()] = line.substring(idx + 1).trim();
+      var k = t.substring(0, idx).trim().toLowerCase();
+      var v = t.substring(idx + 1).trim();
+      map[k] = v;
+    } else {
+      // Skip signature lines (start with —, --, or just a dash+name)
+      if (!/^[\u2014\-]{1,2}\s*\S/.test(t)) {
+        nonKvLines.push(t);
+      }
     }
   });
-  if (map['ticket'])      document.getElementById('ops-ticket').value = map['ticket'];
-  if (map['pg'])          document.getElementById('ops-pg').value = map['pg'];
-  if (map['type'])        document.getElementById('ops-type').value = /dp/i.test(map['type']) ? 'DP' : 'WD';
-  if (map['description']) document.getElementById('ops-desc').value = map['description'];
-  if (map['remarks'])     document.getElementById('ops-remarks').value = map['remarks'];
-  if (map['status'])      document.getElementById('ops-status').value = map['status'];
-  if (map['resolution'])  document.getElementById('ops-resolution').value = map['resolution'];
+
+  // ── Lookup helper ─────────────────────────────────────────────────────────
+  function lookup(aliases) {
+    for (var i = 0; i < aliases.length; i++) {
+      if (map[aliases[i]] !== undefined && map[aliases[i]] !== '') return map[aliases[i]];
+    }
+    return null;
+  }
+
+  // ── Ticket ID ─────────────────────────────────────────────────────────────
+  var ticket = lookup(TICKET_KEYS);
+  if (!ticket) {
+    // Scan raw text for JP-INR-YYYYMMDD-XXXX pattern anywhere
+    var tm = raw.match(/JP-INR-\d{8}-\d+/i);
+    if (tm) ticket = tm[0].toUpperCase();
+  }
+
+  // ── PG Name ───────────────────────────────────────────────────────────────
+  var pg = lookup(PG_KEYS);
+
+  // ── Type ──────────────────────────────────────────────────────────────────
+  var typeRaw = lookup(TYPE_KEYS) || '';
+  var typeVal = 'WD'; // default to WD
+  if (/\bdep(osit)?\b|^dp$/i.test(typeRaw)) typeVal = 'DP';
+
+  // ── Description ───────────────────────────────────────────────────────────
+  var desc = lookup(DESC_KEYS);
+  if (!desc && nonKvLines.length > 0) {
+    // Combine all non-KV meaningful lines as the description
+    desc = nonKvLines.join(' ').trim();
+  }
+
+  // ── Remarks: aggregate explicit remarks + MID + PID ──────────────────────
+  var explicitRemark = lookup(EXPLICIT_REMARK) || '';
+  var midVal = map['mid'] || map['merchant id'] || map['merchantid'] || '';
+  var pidVal = map['pid'] || map['payment id'] || map['paymentid'] || map['payment_id'] || '';
+
+  var remarkParts = [];
+  if (explicitRemark) remarkParts.push(explicitRemark);
+  if (midVal && explicitRemark.indexOf(midVal) < 0) remarkParts.push('MID:' + midVal);
+  if (pidVal && explicitRemark.indexOf(pidVal) < 0) remarkParts.push('PID:' + pidVal);
+  var finalRemarks = remarkParts.join('  ').trim();
+
+  // ── Status / Resolution ───────────────────────────────────────────────────
+  var status     = lookup(STATUS_KEYS) || 'Open';
+  var resolution = lookup(RESOLUTION_KEYS) || '';
+
+  // ── Populate form fields ──────────────────────────────────────────────────
+  if (ticket)       document.getElementById('ops-ticket').value     = ticket;
+  if (pg)           document.getElementById('ops-pg').value         = pg;
+                    document.getElementById('ops-type').value       = typeVal;
+  if (desc)         document.getElementById('ops-desc').value       = desc;
+  if (finalRemarks) document.getElementById('ops-remarks').value    = finalRemarks;
+                    document.getElementById('ops-status').value     = status;
+  if (resolution)   document.getElementById('ops-resolution').value = resolution;
+
+  // ── User feedback ─────────────────────────────────────────────────────────
+  var filled  = [];
+  var missing = [];
+  if (ticket) filled.push('Ticket ID'); else missing.push('Ticket ID');
+  if (pg)     filled.push('PG Name');   else missing.push('PG Name');
+  filled.push('Type (' + typeVal + ')');
+  if (desc)         filled.push('Description');  else missing.push('Description');
+  if (finalRemarks) filled.push('Remarks');
+
+  var msg = '\u2705 Parsed: ' + filled.join(', ') + '.';
+  if (missing.length) msg += '\n\u26a0\ufe0f Please fill in manually: ' + missing.join(', ') + '.';
+  alert(msg);
 }
 
 function opsSubmitEntry() {
@@ -3079,14 +3163,20 @@ if (document.readyState === 'loading') {
 
       <div class="paste-zone">
         <div class="paste-zone-label">⚡ TELEGRAM PASTE — paste message then click Parse</div>
-        <textarea id="tg-paste" placeholder="Paste Telegram message here...
+        <textarea id="tg-paste" placeholder="Paste Telegram message here…
 
-Example:
-Ticket: JP-INR-20260328-0001
-PG: kingpayWD
-Type: WD
-Description: Call back issue, failed in PG but still Processing on our backend
-Remarks: MID:17746227539536113005 PID:ikBXvL51HHpty8bZ"></textarea>
+Supports formats like:
+  Payment ID: ikBXvL51HHpty8bZ
+  Agent: kingpayWD
+  Type: Withdraw
+  We will now proceed to manually mark this as failed.
+  —JPCSMari
+
+  — or —
+  Ticket: JP-INR-20260328-0001
+  PG: kingpayWD  |  Type: WD
+  Description: Call back issue
+  Remarks: MID:xxx PID:xxx"></textarea>
         <button class="parse-btn" onclick="parseTelegram()">⚡ Parse & Fill Form</button>
       </div>
 
