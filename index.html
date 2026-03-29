@@ -3083,6 +3083,7 @@ function opsSubmitEntry() {
           '\u26A0\uFE0F <strong>DUPLICATE TRANSACTION DETECTED</strong><br>' +
           'Ticket <strong>' + ticket + '</strong> has already been recorded.<br>' +
           '<span style="font-weight:400;font-size:12px">Submitted by: <strong>' + who + '</strong> &nbsp;|&nbsp; Date: <strong>' + when + '</strong></span>';
+        msgEl.scrollIntoView({behavior:'smooth', block:'center'});
         return;
       }
 
